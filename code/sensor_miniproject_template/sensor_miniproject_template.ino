@@ -70,6 +70,7 @@ volatile bool   stateChanged = false;
 // Color sensor (TCS3200)
 // =============================================================
 
+
 /*
  * TODO (Activity 2): Implement the color sensor.
  *
@@ -103,6 +104,40 @@ volatile bool   stateChanged = false;
  *   }
  */
 
+// ---------------- COLOR SENSOR PINS ----------------
+
+#define S0 4
+#define S1 5
+#define S2 6
+#define S3 7
+#define SENSOR_OUT 8
+
+// ---------------- SENSOR MEASUREMENT ----------------
+
+static uint32_t measureChannel(uint8_t s2, uint8_t s3) {
+
+    digitalWrite(S2, s2);
+    digitalWrite(S3, s3);
+
+    uint32_t count = 0;
+    unsigned long start = millis();
+
+    while (millis() - start < 100) {
+        if (digitalRead(SENSOR_OUT) == HIGH) {
+            count++;
+            while (digitalRead(SENSOR_OUT) == HIGH);
+        }
+    }
+
+    return count;
+}
+
+static void readColorChannels(uint32_t *r, uint32_t *g, uint32_t *b) {
+
+    *r = measureChannel(LOW, LOW) * 10;
+    *g = measureChannel(HIGH, HIGH) * 10;
+    *b = measureChannel(LOW, HIGH) * 10;
+}
 
 // =============================================================
 // Command handler
@@ -128,10 +163,6 @@ static void handleCommand(const TPacket *cmd) {
             stateChanged = false;
             sei();
             {
-                // The data field of a TPacket can carry a short debug string (up to
-                // 31 characters).  pi_sensor.py prints it automatically for any packet
-                // where data is non-empty, so you can use it to send debug messages
-                // from the Arduino to the Pi terminal -- similar to Serial.print().
                 TPacket pkt;
                 memset(&pkt, 0, sizeof(pkt));
                 pkt.packetType = PACKET_TYPE_RESPONSE;
@@ -143,9 +174,25 @@ static void handleCommand(const TPacket *cmd) {
             sendStatus(STATE_STOPPED);
             break;
 
-        // TODO (Activity 2): add COMMAND_COLOR case here.
-        //   Call your color-reading function (which returns Hz), then send a
-        //   response packet with the three channel frequencies in Hz.
+        // ---------------- COLOR SENSOR COMMAND ----------------
+
+        case COMMAND_COLOR: {
+
+            uint32_t r, g, b;
+            readColorChannels(&r, &g, &b);
+
+            TPacket pkt;
+            memset(&pkt, 0, sizeof(pkt));
+            pkt.packetType = PACKET_TYPE_RESPONSE;
+            pkt.command = RESP_COLOR;
+            pkt.params[0] = r;
+            pkt.params[1] = g;
+            pkt.params[2] = b;
+
+            sendFrame(&pkt);
+
+            break;
+        }
     }
 }
 
@@ -154,21 +201,29 @@ static void handleCommand(const TPacket *cmd) {
 // =============================================================
 
 void setup() {
-    // Initialise the serial link at 9600 baud.
-    // Serial.begin() is used by default; usartInit() takes over once
-    // USE_BAREMETAL_SERIAL is set to 1 in serial_driver.h.
+
 #if USE_BAREMETAL_SERIAL
-    usartInit(103);   // 9600 baud at 16 MHz
+    usartInit(103);
 #else
     Serial.begin(9600);
 #endif
-    // TODO (Activity 1): configure the button pin and its external interrupt,
-    // then call sei() to enable global interrupts.
+
+    // ----------- COLOR SENSOR PIN SETUP -----------
+
+    pinMode(S0, OUTPUT);
+    pinMode(S1, OUTPUT);
+    pinMode(S2, OUTPUT);
+    pinMode(S3, OUTPUT);
+    pinMode(SENSOR_OUT, INPUT);
+
+    digitalWrite(S0, HIGH);
+    digitalWrite(S1, LOW);
+
     sei();
 }
 
 void loop() {
-    // --- 1. Report any E-Stop state change to the Pi ---
+
     if (stateChanged) {
         cli();
         TState state = buttonState;
@@ -177,7 +232,6 @@ void loop() {
         sendStatus(state);
     }
 
-    // --- 2. Process incoming commands from the Pi ---
     TPacket incoming;
     if (receiveFrame(&incoming)) {
         handleCommand(&incoming);
