@@ -20,6 +20,8 @@
 
 #include "packets.h"
 #include "serial_driver.h"
+#include <avr/interrupt.h>
+#include <avr/io.h>
 
 // =============================================================
 // Packet helpers (pre-implemented for you)
@@ -69,7 +71,11 @@ volatile bool   stateChanged = false;
 // =============================================================
 // Color sensor (TCS3200)
 // =============================================================
+const uint8_t BUTTON_PIN = 53; // Mega external interrupt pin
+#define THRESHOLD 50           // 50 x 100us = 5 ms debounce
 
+volatile unsigned long _timerTicks = 0;
+volatile unsigned long _lastTime = 0;
 
 /*
  * TODO (Activity 2): Implement the color sensor.
@@ -137,6 +143,39 @@ static void readColorChannels(uint32_t *r, uint32_t *g, uint32_t *b) {
     *r = measureChannel(LOW, LOW) * 10;
     *g = measureChannel(HIGH, HIGH) * 10;
     *b = measureChannel(LOW, HIGH) * 10;
+}
+
+static void setupTimer() {
+    cli();
+    TCCR2A = (1 << WGM21);  // CTC mode
+    TCCR2B = 0;             // stop timer for now
+    TIMSK2 = (1 << OCIE2A); // enable compare match A interrupt
+    TCNT2 = 0;
+    OCR2A = 199; // 100 us at 16 MHz, prescaler 8
+    sei();
+}
+
+static void startTimer() {
+    TCCR2B = (1 << CS21); // prescaler 8
+}
+
+ISR(TIMER2_COMPA_vect) { _timerTicks++; }
+
+void buttonISR() {
+    unsigned long now = _timerTicks;
+
+    if ((now - _lastTime) > THRESHOLD) {
+        bool pressed = (digitalRead(BUTTON_PIN) == HIGH);
+
+        if (buttonState == STATE_RUNNING && pressed) {
+            buttonState = STATE_STOPPED;
+            stateChanged = true;
+        } else if (buttonState == STATE_STOPPED && !pressed) {
+            buttonState = STATE_RUNNING;
+            stateChanged = true;
+        }
+        _lastTime = now;
+    }
 }
 
 // =============================================================
@@ -215,9 +254,13 @@ void setup() {
     pinMode(S2, OUTPUT);
     pinMode(S3, OUTPUT);
     pinMode(SENSOR_OUT, INPUT);
-
     digitalWrite(S0, HIGH);
     digitalWrite(S1, LOW);
+
+     pinMode(BUTTON_PIN, INPUT); // assumes press = HIGH, release = LOW
+     setupTimer();
+     startTimer();
+     attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, CHANGE);
 
     sei();
 }
