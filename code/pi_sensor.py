@@ -337,4 +337,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nExiting.")
     finally:
+        alex_camera.cameraClose(_camera)
+        # TODO Disconnect Lidar if used (unsure)        
         closeSerial()
