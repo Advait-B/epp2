@@ -258,21 +258,30 @@ def handleColorCommand():
 # ----------------------------------------------------------------
 
 # TODO (Activity 3): import the camera library provided (alex_camera.py).
-
-_camera = None          # TODO (Activity 3): open the camera (cameraOpen()) before first use.
+import alex_camera
+_camera = alex_camera.cameraOpen()          # TODO (Activity 3): open the camera (cameraOpen()) before first use.
 _frames_remaining = 5   # frames remaining before further captures are refused
 
 
 def handleCameraCommand():
     """
     TODO (Activity 3): capture and display a greyscale frame.
-
+    
     Gate on E-Stop state and the remaining frame count.
     Use captureGreyscaleFrame() and renderGreyscaleFrame() from alex_camera.
     """
     global _frames_remaining
-    # TODO
-    pass
+
+    if not isEstopActive(): # estop not active, capture and display max 5 images.
+        if _frames_remaining > 0:
+            newImage = alex_camera.captureGreyscaleFrame(_camera)
+            alex_camera.renderGreyscaleFrame(newImage)
+            _frames_remaining -= 1
+            print(f"Frames remaining: {_frames_remaining}")
+        else: # no frames remaining
+            print("No frames remaining. Please wait for the system to reset.")
+    else: # estop active
+        print("E-Stop is active. Cannot capture camera frame.")
 
 
 # ----------------------------------------------------------------
