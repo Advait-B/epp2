@@ -23,12 +23,14 @@ typedef enum {
 typedef enum {
     COMMAND_ESTOP = 0,
     // TODO (Activity 2): add your own command type for the color sensor
+    COMMAND_COLOR = 1
 } TCommandType;
 
 typedef enum {
     RESP_OK     = 0,
     RESP_STATUS = 1,
     // TODO (Activity 2): add your own response type for the color sensor
+    RESP_COLOR  = 2
 } TResponseType;
 
 typedef enum {
@@ -50,5 +52,5 @@ typedef struct {
 
 #define MAGIC_HI        0xDE
 #define MAGIC_LO        0xAD
-#define TPACKET_SIZE    ((uint8_t)sizeof(TPacket))   // 100 bytes
-#define FRAME_SIZE      (2 + TPACKET_SIZE + 1)       // 103 bytes
+#define TPACKET_SIZE    ((uint8_t)sizeof(TPacket))
+#define FRAME_SIZE      (2 + TPACKET_SIZE + 1)
