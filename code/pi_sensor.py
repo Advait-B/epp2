@@ -273,10 +273,13 @@ def handleCameraCommand():
 # ACTIVITY 4: LIDAR
 # ----------------------------------------------------------------
 
+import lidar_example_cli_plot as lidar_plot
 
 def handleLidarCommand():
-    pass
-
+    if not isEstopActive():
+        lidar_plot.plot_single_scan()
+    else:
+        print("E-Stop is active. Cannot perform LiDAR scan.")
 
 # ----------------------------------------------------------------
 # COMMAND-LINE INTERFACE
@@ -293,7 +296,10 @@ def handleUserInput(line):
 
     elif line == 'p':
         handleCameraCommand()
-        
+
+    elif line == 'l':
+        handleLidarCommand()
+    
     else:
         print(f"Unknown input: '{line}'. Valid: e, c, p, l")
 
