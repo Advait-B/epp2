@@ -291,6 +291,9 @@ def handleUserInput(line):
     elif line == 'c':
         handleColorCommand()
 
+    elif line == 'p':
+        handleCameraCommand()
+        
     else:
         print(f"Unknown input: '{line}'. Valid: e, c, p, l")
 
