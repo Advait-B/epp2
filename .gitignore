@@ -1,0 +1,10 @@
+# Python caches
+/__pycache__/
+/_pycache_/
+
+# Local virtual environment
+/env/
+
+# Local setup logs
+/setup_envitonment.log
+/setup_environment.log
